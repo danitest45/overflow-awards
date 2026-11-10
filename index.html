@@ -389,13 +389,36 @@ function VotarCategoria({ categoria, voterId, respostaAtual, onAvancar, onVoltar
   `;
 }
 
+function VotarIntro({ onComecar, total }) {
+  return html`
+    <div class="votar">
+      <div class="votar-body" style="justify-content:center;">
+        <img src=${LOGO_URL} alt="Flow" style="width:90px;" />
+        <div>
+          <div class="display display-lg">Overflow<br/>Awards</div>
+          <p style="color:var(--cinza-claro);margin-top:8px;">Votação da premiação bem-humorada do retiro — Rede Flow</p>
+        </div>
+        <p style="color:var(--cinza-claro);max-width:460px;">
+          É rapidinho: ${total} categorias, uns 2 minutos. Em cada uma, escreve o
+          nome de quem você lembra. Se não souber quem botar, aparecem os nomes
+          mais votados — é só escolher um. Pode pular categoria numa boa.
+        </p>
+        <button class="btn btn-primary" onClick=${onComecar}>Começar</button>
+      </div>
+    </div>
+  `;
+}
+
 function VotarEncerrado() {
   return html`
     <div class="votar">
       <div class="votar-body" style="justify-content:center;">
         <img src=${LOGO_URL} alt="Flow" style="width:120px;" />
         <div class="display display-lg">Valeu!</div>
-        <p style="color:var(--cinza-claro);">Seu voto foi registrado. O resultado sai no telão do TalkFlow, dia 13/11.</p>
+        <p style="color:var(--cinza-claro);">
+          Seu voto foi registrado. Dia 13/11, 19h30, na Primeira Igreja Batista —
+          no TalkFlow pós-retiro — a gente revela os vencedores!
+        </p>
       </div>
     </div>
   `;
@@ -407,6 +430,7 @@ function VotarView() {
   const [finalizado, setFinalizado] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [index, setIndex] = useState(0);
+  const [comecou, setComecou] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -417,6 +441,7 @@ function VotarView() {
       ]);
       if (cancelled) return;
       setRespostas(resp || {});
+      if (resp && Object.keys(resp).length) setComecou(true);
       if (fin) { setFinalizado(true); setLoaded(true); return; }
       let first = CATEGORIAS.length - 1;
       for (let i = 0; i < CATEGORIAS.length; i++) {
@@ -440,6 +465,7 @@ function VotarView() {
 
   if (!loaded) return html`<div class="votar"><div class="votar-body"><div class="pulse">Carregando…</div></div></div>`;
   if (finalizado) return html`<${VotarEncerrado} />`;
+  if (!comecou) return html`<${VotarIntro} onComecar=${() => setComecou(true)} total=${CATEGORIAS.length} />`;
 
   const categoria = CATEGORIAS[index];
   return html`<${VotarCategoria}
