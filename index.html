@@ -382,7 +382,7 @@ function VotarCategoria({ categoria, voterId, respostaAtual, onAvancar, onVoltar
         ` : ''}
       </div>
       <div class="votar-footer">
-        <button class="btn btn-ghost btn-sm" disabled=${indexAtual === 0} onClick=${onVoltar}>← Voltar</button>
+        <button class="btn btn-ghost btn-sm" onClick=${onVoltar}>← Voltar</button>
         <span></span>
       </div>
     </div>
@@ -474,7 +474,7 @@ function VotarView() {
     respostaAtual=${respostas ? respostas[categoria.id] : null}
     indexAtual=${index}
     total=${CATEGORIAS.length}
-    onVoltar=${() => setIndex(Math.max(0, index - 1))}
+    onVoltar=${() => { if (index === 0) setComecou(false); else setIndex(index - 1); }}
     onAvancar=${(key) => avancar(categoria.id, key)}
   />`;
 }
