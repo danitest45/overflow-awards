@@ -64,6 +64,19 @@ input[type=text]:focus{outline:none;border-color:var(--teal-claro);}
 ::-webkit-scrollbar{width:10px;}
 ::-webkit-scrollbar-thumb{background:var(--preto-suave);border-radius:10px;}
 
+/* ---- login / porta de vidro admin ---- */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;z-index:1;}
+.login-card{background:var(--preto-suave);border:1px solid rgba(216,212,202,.12);border-radius:18px;padding:34px 28px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;animation:fadeUp .4s var(--ease);}
+.login-title{font-family:var(--font-display);text-transform:uppercase;font-size:2rem;line-height:1;}
+.login-sub{color:var(--cinza-claro);font-size:.9rem;margin-top:-8px;margin-bottom:6px;}
+.login-input{background:var(--preto);border:1px solid var(--cinza-claro);color:var(--off-white);border-radius:12px;padding:14px 16px;font-size:1.05rem;width:100%;}
+.login-input:focus{outline:none;border-color:var(--teal-claro);}
+.login-erro{color:#ff8b8b;font-size:.88rem;}
+.login-back{display:inline-block;text-align:center;margin-top:4px;font-size:.88rem;color:var(--cinza-claro);text-decoration:none;}
+.login-back:hover{color:var(--teal-claro);}
+.admin-bar{display:flex;align-items:center;justify-content:flex-end;gap:12px;max-width:1100px;margin:0 auto;padding:14px 24px 0;position:relative;z-index:2;}
+.admin-tag{font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-claro);border:1px solid var(--teal-claro);border-radius:999px;padding:3px 12px;}
+
 @keyframes fadeUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
 @keyframes popIn{from{opacity:0;transform:scale(.55) translateY(30px);}to{opacity:1;transform:scale(1) translateY(0);}}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
@@ -598,6 +611,65 @@ function ResultadoView() {
 }
 
 /* =========================================================
+   PORTA DE VIDRO — login admin pra tela de resultado.
+   É só um gate de UI: o código é público e as regras do
+   Firebase são abertas, então isto barra curioso, não hacker.
+   Guarda só o hash SHA-256 da senha, nunca a senha em texto.
+   ========================================================= */
+const ADMIN_USER = 'felipe-admin';
+const ADMIN_HASH = 'ea859ee050229ba5df32cb4e232b6d33da37f3a61b0877d93154073627de646f';
+const ADMIN_SS_KEY = 'overflowAdminOk';
+
+async function sha256Hex(txt) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function AdminGate({ children }) {
+  const [ok, setOk] = useState(() => { try { return sessionStorage.getItem(ADMIN_SS_KEY) === '1'; } catch (e) { return false; } });
+  const [user, setUser] = useState('');
+  const [senha, setSenha] = useState('');
+  const [erro, setErro] = useState('');
+  const [checando, setChecando] = useState(false);
+
+  async function entrar(e) {
+    e.preventDefault();
+    setChecando(true);
+    const hash = await sha256Hex(senha);
+    if (user.trim().toLowerCase() === ADMIN_USER && hash === ADMIN_HASH) {
+      try { sessionStorage.setItem(ADMIN_SS_KEY, '1'); } catch (_) {}
+      setErro(''); setOk(true);
+    } else {
+      setErro('Usuário ou senha incorretos.');
+    }
+    setChecando(false);
+  }
+  function sair() {
+    try { sessionStorage.removeItem(ADMIN_SS_KEY); } catch (_) {}
+    setOk(false); setUser(''); setSenha(''); setErro('');
+  }
+
+  if (ok) return html`
+    <div>
+      <div class="admin-bar"><span class="admin-tag">🔓 admin</span><button class="btn btn-outline btn-sm" onClick=${sair}>Sair</button></div>
+      ${children}
+    </div>`;
+
+  return html`
+    <div class="login-wrap">
+      <form class="login-card" onSubmit=${entrar}>
+        <div class="login-title">Área restrita</div>
+        <div class="login-sub">Resultado e administração · Overflow Awards</div>
+        <input class="login-input" placeholder="usuário" value=${user} onInput=${(e) => setUser(e.target.value)} autocomplete="username" />
+        <input class="login-input" type="password" placeholder="senha" value=${senha} onInput=${(e) => setSenha(e.target.value)} autocomplete="current-password" />
+        ${erro ? html`<div class="login-erro">${erro}</div>` : ''}
+        <button class="btn btn-primary btn-block" type="submit" disabled=${checando}>${checando ? 'Entrando…' : 'Entrar'}</button>
+        <a class="login-back" href="?view=votar">← voltar pra votação</a>
+      </form>
+    </div>`;
+}
+
+/* =========================================================
    ROOT
    ========================================================= */
 function App() {
@@ -606,7 +678,7 @@ function App() {
     <div>
       <div class="bg-layer bg-waves"></div>
       <div class="bg-layer bg-grain"></div>
-      ${view === 'votar' ? html`<${VotarView} />` : view === 'resultado' ? html`<${ResultadoView} />` : html`<${Landing} />`}
+      ${view === 'votar' ? html`<${VotarView} />` : view === 'resultado' ? html`<${AdminGate}><${ResultadoView} /><//>` : html`<${Landing} />`}
     </div>
   `;
 }
